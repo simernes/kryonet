@@ -1,0 +1,87 @@
+ codeflakes0 commented on 3 Sep 2015
+
+I'm not sure the google group is still read so I'm reposting the issue here.
+Please see this post "https://groups.google.com/forum/#!topic/kryonet-users/7l436tftBlo" for details.
+
+Basically with the simplest Client / Server application you can't send UDP from Server
+to Client on Android > 5.0. The same code works on Android 4.4.
+
+UDP sending from Client to Server works though ...
+
+PS: I've tested it on localhost so with Client and Server on the same device but this should not be a problem and the same code works on 4.4.
+@NathanSweet
+Esoteric Software member
+NathanSweet commented on 4 Sep 2015
+It's still read, it's just I don't usually have time to setup and debug on
+Android, which tends to have buggy networking with OS version and device
+specific issues. Sorry I can't be of further help!
+…
+@codeflakes0
+codeflakes0 commented on 8 Sep 2015
+
+Thank you for your answer Nathan. I've since checked as stated on the Google code forum that read() works and receive() returns null on android 5.0. I'm not familiar with the socket API and kryonet source code. Can I just use read() instead of receive() in readFromAdress() of UdpConnnection.java ?
+@codeflakes0
+codeflakes0 commented on 8 Sep 2015
+
+The following patch seems to work on my test app.
+
+public InetSocketAddress readFromAddress () throws IOException {
+    DatagramChannel datagramChannel = this.datagramChannel;
+    if (datagramChannel == null) throw new SocketException("Connection is closed.");
+    lastCommunicationTime = System.currentTimeMillis();
+
+    if(!datagramChannel.isConnected())
+        return (InetSocketAddress)datagramChannel.receive(readBuffer); // always null on Android >= 5.0
+    datagramChannel.read(readBuffer);
+    return connectedAddress;
+}
+
+@desertkun
+desertkun commented on 9 Sep 2015
+
+codeflakes0, thank you SO MUCH! I've wasted 2 days trying to get this issue down, and finally.
+@anubiann00b anubiann00b referenced this issue on 4 Nov 2015
+Open
+Fix UDP recieving on Android 5.0+ #111
+@CookedApps
+CookedApps commented on 5 Nov 2015
+
+How do i use this fix in gradle? I can't figure out how to download the latest commit by anubiann00b as jar repository.
+@desertkun
+desertkun commented on 5 Nov 2015
+
+Just clone it and do mvn compile install to install it into your local maven repository. Also make sure to have mavenLocal() in your build.gradle script. Also, change compile to com.esotericsoftware:kryonet:2.22.0-RC1 in dependencies section.
+@CookedApps
+CookedApps commented on 6 Nov 2015
+
+I have installed maven and cloned the patched kronet version to my local maven repo and added mavenLocal() and compile "com.esotericsoftware:kryonet:2.22.0-RC1" to my build.gradle..
+But udp is not working though, i think it takes kryonet from mavenCentral because the complie command for that is the same. But i need to use mavenCentral also for other repos..
+So how do make the build.gradle to use the repo on my local maven?
+Thanks for your help desertkun!
+@desertkun
+desertkun commented on 6 Nov 2015
+
+Just make sure to have mavenLocal before mavenCentral.
+
+mavenLocal()
+mavenCentral()
+
+@CookedApps
+CookedApps commented on 6 Nov 2015
+
+Yes, i have done it like that. So why isn't my Android 5 device receiving any udp messages?
+I have to make an addition here:
+
+compile ("com.esotericsoftware:kryonet:2.22.0-RC1") {
+         exclude module : 'kryo'
+}
+compile "com.esotericsoftware:kryo:3.0.1"
+
+This is how my compile looks like. I had to exclude kryo from kryonet and complie it seperately because if i only compile java "com.esotericsoftware:kryonet:2.22.0-RC1" i get an Multiple dex file exception.
+@doomtoo
+doomtoo commented on 3 Mar
+
+Thanks also codeflakes0! Saved a lot of headache, and working for me on my newer Android devices now. Just switched to using UDP and TCP, and of course doesn't work on any but the oldest Android, but I was lucky to find this post.
+
+Now if only I could figure out how to get UDP to register not based on initial IP... (when connecting from an external IP, it first gets the first message from the router IP, than the internal IP, so kryo discards every message after that because they aren't from a registered IP) :/
+
